@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SpotItRio — 57 Card Tournament</title>
+<style>
+  :root{
+    --bg:#f6f7fb;--panel:#ffffff;--ink:#141821;--muted:#6b7280;--line:#e5e7eb;
+    --accent:#111827;--good:#0f766e;--bad:#b91c1c;--p1:#2563eb;--p2:#dc2626;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink)}
+  .wrap{max-width:1180px;margin:0 auto;padding:28px 18px 60px}
+  header{display:flex;justify-content:space-between;gap:18px;align-items:flex-end;flex-wrap:wrap;margin-bottom:20px}
+  h1{margin:0;font-size:clamp(30px,5vw,52px);letter-spacing:-.04em}
+  .sub{color:var(--muted);max-width:700px;margin-top:6px}
+  .pill{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:8px 12px;font-size:14px}
+  .grid{display:grid;grid-template-columns:1fr;gap:18px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:18px}
+  .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  button{font:inherit;border:0;border-radius:12px;padding:11px 14px;cursor:pointer;font-weight:700;background:#111827;color:white}
+  button.secondary{background:white;color:#111827;border:1px solid var(--line)}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  .scorebar{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center}
+  .score{border-radius:16px;padding:14px 16px;border:2px solid var(--line);background:white;text-align:center}
+  .score.p1{border-color:color-mix(in srgb,var(--p1) 45%, white)}
+  .score.p2{border-color:color-mix(in srgb,var(--p2) 45%, white)}
+  .score .name{font-size:14px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.08em}
+  .score .num{font-size:34px;font-weight:900;line-height:1;margin-top:4px}
+  .round{font-weight:900;text-align:center}
+  .arena{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;margin-top:18px;align-items:start}
+  .cardWrap{text-align:center}
+  .cardLabel{font-size:13px;color:var(--muted);margin-bottom:8px}
+  .card{aspect-ratio:1/1;width:100%;max-width:460px;margin:auto;border-radius:50%;background:white;border:7px solid #111827;box-shadow:0 12px 28px rgba(17,24,39,.08);position:relative;overflow:hidden}
+  .symbol{position:absolute;transform:translate(-50%,-50%);border:0;background:transparent;color:#111827;padding:0;width:62px;height:62px;border-radius:14px;display:grid;place-items:center;font-size:clamp(29px,4vw,46px);cursor:pointer;transition:.12s ease}
+  .symbol:hover,.symbol:focus-visible{background:#eef2ff;outline:3px solid #c7d2fe}
+  .symbol.match-reveal{background:#dcfce7;outline:4px solid #34d399}
+  .symbol.wrong{background:#fee2e2;outline:4px solid #f87171}
+  .symbol:disabled{cursor:default;opacity:1}
+  .status{margin-top:18px;text-align:center;height:64px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 12px;line-height:1.35}
+  .status.good{color:var(--good)} .status.bad{color:var(--bad)}
+  .small{font-size:13px;color:var(--muted)}
+  .verify-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}
+  .metric{border:1px solid var(--line);border-radius:14px;padding:12px;background:#fafafa}
+  .metric b{display:block;font-size:23px;margin-bottom:2px}
+  .pass{color:var(--good)} .fail{color:var(--bad)}
+  details{margin-top:12px;border-top:1px solid var(--line);padding-top:12px}
+  code{background:#f3f4f6;padding:2px 5px;border-radius:5px}
+  .footerNote{margin-top:14px;color:var(--muted);font-size:13px;line-height:1.5}
+  .hidden{display:none!important}
+  .startOverlay{position:fixed;inset:0;z-index:999;display:grid;place-items:center;padding:24px;background:rgba(17,24,39,.28);backdrop-filter:blur(2px)}
+  .startScreen{max-width:680px;width:min(680px,calc(100% - 24px));text-align:center;background:rgba(255,255,255,.96);border:1px solid rgba(229,231,235,.95);border-radius:24px;padding:34px 26px;box-shadow:0 24px 70px rgba(17,24,39,.22)}
+  .startScreen h2{font-size:clamp(36px,6vw,62px);margin:0 0 12px;letter-spacing:-.04em}
+  .startScreen p{color:var(--muted);font-size:18px;line-height:1.55;max-width:620px;margin:0 auto 24px}
+  .startRules{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:24px 0;text-align:left}
+  .startRule{border:1px solid var(--line);border-radius:16px;padding:14px;background:#fafafa}
+  .startRule b{display:block;margin-bottom:4px}
+  .startBtn{font-size:20px;padding:15px 28px;border-radius:14px}
+
+  .shareOverlay{position:fixed;inset:0;z-index:1150;display:grid;place-items:center;padding:24px;background:rgba(17,24,39,.38);backdrop-filter:blur(3px)}
+  .shareModal{width:min(520px,calc(100% - 24px));background:white;border:1px solid var(--line);border-radius:24px;padding:26px 22px;text-align:center;box-shadow:0 24px 70px rgba(17,24,39,.24)}
+  .shareModal h2{margin:0 0 8px;font-size:30px;letter-spacing:-.03em}
+  .shareModal p{margin:0;color:var(--muted);line-height:1.5}
+  .shareQr{width:220px;height:220px;margin:18px auto 14px;padding:10px;border:1px solid var(--line);border-radius:18px;background:#fff;display:grid;place-items:center}
+  .shareQr canvas,.shareQr img{max-width:100%;max-height:100%}
+  .shareUrlRow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin-top:14px}
+  .shareUrl{min-width:0;width:100%;border:1px solid var(--line);border-radius:12px;padding:11px 12px;font:inherit;background:#f9fafb;color:var(--ink)}
+  .shareActions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:12px}
+  .shareWarn{margin-top:12px!important;font-size:13px;color:#92400e!important;background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:10px 12px}
+  .winOverlay{position:fixed;inset:0;z-index:1200;display:grid;place-items:center;padding:24px;background:rgba(17,24,39,.38);backdrop-filter:blur(3px)}
+  .winModal{width:min(520px,calc(100% - 24px));background:white;border:1px solid var(--line);border-radius:24px;padding:30px 24px;text-align:center;box-shadow:0 24px 70px rgba(17,24,39,.24)}
+  .winModal .trophy{font-size:58px;line-height:1;margin-bottom:10px}
+  .winModal h2{margin:0;font-size:34px;letter-spacing:-.03em}
+  .winModal .finalScore{font-size:52px;font-weight:900;letter-spacing:-.04em;margin:10px 0 4px}
+  .winModal p{margin:0 0 22px;color:var(--muted)}
+  .winActions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
+  @media (max-width:800px){
+    .grid{grid-template-columns:1fr}
+    .arena{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+    .verify-grid{grid-template-columns:1fr 1fr}
+    .card{max-width:none;border-width:5px}
+    .symbol{width:44px;height:44px;font-size:clamp(20px,7vw,34px)}
+  }
+  @media (max-width:700px){.startRules{grid-template-columns:1fr}.startOverlay{padding:12px}.startScreen{padding:26px 18px}}
+  @media (max-width:420px){
+    .wrap{padding-left:10px;padding-right:10px}
+    .panel{padding:12px}
+    .arena{gap:6px}
+    .cardLabel{font-size:11px}
+    .symbol{width:34px;height:34px;font-size:clamp(17px,6vw,26px)}
+  }
+</style>
+</head>
+<body>
+<div class="wrap" style="position:relative">
+  <header>
+    <div>
+      <h1>SpotItRio</h1>
+      <div class="sub">A playable 57-card Spot It deck generated from the projective plane of order 7. Every card has 8 symbols, and every pair of cards shares exactly one symbol.</div>
+    </div>
+    <div class="pill" id="validityPill">Checking deck…</div>
+  </header>
+
+
+  <div class="grid" id="gameGrid">
+    <section class="panel">
+      <div class="scorebar">
+        <div class="score p1"><div class="name">Player 1</div><div class="num" id="p1Score">0</div></div>
+        <div class="round"><div id="roundText">Round 1 / 10</div><div class="small" id="modeText">Race mode</div></div>
+        <div class="score p2"><div class="name">Player 2</div><div class="num" id="p2Score">0</div></div>
+      </div>
+
+      <div class="arena">
+        <div class="cardWrap"><div class="cardLabel" id="leftLabel">Card —</div><div class="card" id="leftCard"></div></div>
+        <div class="cardWrap"><div class="cardLabel" id="rightLabel">Card —</div><div class="card" id="rightCard"></div></div>
+      </div>
+
+      <div class="status" id="status">Each player clicks the matching symbol on their own card. First correct click wins the round.</div>
+
+      <div class="controls" style="margin-top:14px;justify-content:center">
+        <button class="secondary" id="revealBtn">Reveal match</button>
+        <button class="secondary" id="restartBtn">New match</button>
+        <button class="secondary" id="shareBtn">Share</button>
+      </div>
+      <div class="footerNote">Player 1 uses the left card; Player 2 uses the right card. Click the one symbol that appears on both cards. The first correct click scores 1 point. After a short pause, the game automatically advances to the next round. A 10-round tie goes automatically to sudden death.</div>
+    </section>
+
+    <section class="panel">
+      <h2 style="margin:0 0 8px">Computational verification</h2>
+      <div class="small">The deck is generated, then all \(\binom{57}{2}=1,596\) distinct card pairs are checked in-browser.</div>
+      <div class="verify-grid">
+        <div class="metric"><b id="cardCount">—</b><span>cards</span></div>
+        <div class="metric"><b id="symbolsPerCard">—</b><span>symbols/card</span></div>
+        <div class="metric"><b id="pairCount">—</b><span>pairs checked</span></div>
+        <div class="metric"><b id="badPairs">—</b><span>invalid pairs</span></div>
+      </div>
+      <div id="verifyResult" style="margin-top:12px;font-weight:900"></div>
+
+      <details>
+        <summary><b>Why the construction works</b></summary>
+        <p class="small">Use the projective plane <code>PG(2,7)</code>. Its 57 points become symbols and its 57 lines become cards. Each line contains 8 points, so every card has 8 symbols. Any two distinct projective lines meet in exactly one point, so every two cards share exactly one symbol.</p>
+        <p class="small">We construct 49 cards of the form <code>y = mx + b</code> over arithmetic modulo 7, 7 vertical cards <code>x = a</code>, and one line-at-infinity card. Symbols are the 49 affine points plus 8 points at infinity.</p>
+      </details>
+
+      <details>
+        <summary><b>Deck browser</b></summary>
+        <div class="controls" style="margin-top:10px">
+          <button class="secondary" id="prevCard">Previous</button>
+          <span class="pill" id="browseLabel">Card 1 / 57</span>
+          <button class="secondary" id="nextCard">Next</button>
+        </div>
+        <div id="browseSymbols" style="font-size:28px;line-height:1.8;margin-top:10px"></div>
+      </details>
+    </section>
+  </div>
+  <div class="startOverlay" id="startOverlay">
+  <section class="startScreen" id="startScreen">
+    <h2>SpotItRio</h2>
+    <p>Two players. Ten rounds. Find the one symbol shared by both cards and click it on your side before your opponent.</p>
+    <div class="startRules">
+      <div class="startRule"><b>57-card deck</b><span class="small">Every card has exactly 8 symbols.</span></div>
+      <div class="startRule"><b>Exactly one match</b><span class="small">Every pair of cards shares exactly one symbol.</span></div>
+      <div class="startRule"><b>First to click scores</b><span class="small">Most points after 10 rounds wins.</span></div>
+    </div>
+    <button class="startBtn" id="startBtn">Start Match</button>
+    <div class="small" style="margin-top:14px">If the score is tied after 10 rounds, the game goes to sudden death.</div>
+  </section>
+
+  </div>
+
+  <div class="shareOverlay hidden" id="shareOverlay" role="dialog" aria-modal="true" aria-labelledby="shareTitle">
+    <section class="shareModal">
+      <h2 id="shareTitle">Share SpotItRio</h2>
+      <p>Share the link or let someone scan the QR code to open this game.</p>
+      <div class="shareQr" id="shareQr" aria-label="QR code for this game"></div>
+      <div class="shareUrlRow">
+        <input class="shareUrl" id="shareUrl" type="text" readonly aria-label="Game link">
+        <button id="copyShareBtn" type="button">Copy link</button>
+      </div>
+      <p class="shareWarn hidden" id="shareWarn">This is a local file. Other people cannot open this QR code until the game is hosted at a public web address.</p>
+      <div class="shareActions">
+        <button class="secondary" id="nativeShareBtn" type="button">Share…</button>
+        <button class="secondary" id="closeShareBtn" type="button">Close</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="winOverlay hidden" id="winOverlay" role="dialog" aria-modal="true" aria-labelledby="winTitle">
+    <section class="winModal">
+      <div class="trophy">🏆</div>
+      <h2 id="winTitle">Player 1 wins!</h2>
+      <div class="finalScore" id="winScore">0–0</div>
+      <p id="winMessage">Match complete.</p>
+      <div class="winActions">
+        <button id="playAgainBtn">Play Again</button>
+      </div>
+    </section>
+  </div>
+</div>
+<script>
+(() => {
+  const EMOJIS = [
+    '🍎','🍌','🍇','🍓','🍒','🍍','🥝','🍉','🍋','🍑','🥕','🌽','🍄','🌶️','🥨','🍪','🍩','🍕','🌮',
+    '⚽','🏀','🏈','⚾','🎾','🏐','🎱','🏓','🥏','🎲','♟️','🎯','🎸','🎹','🎺','🎻','🥁','🎧','🎤',
+    '🚗','🚕','🚌','🚲','✈️','🚀','⛵','🚂','🏠','🏰','🌈','⭐','☀️','🌙','☁️','❄️','🔥','💧','🌳'
+  ];
+
+  function mod(n){ return ((n % 7) + 7) % 7; }
+  const points = [];
+  for(let x=0;x<7;x++) for(let y=0;y<7;y++) points.push({id:`P${x}${y}`, label:`(${x},${y})`});
+  for(let m=0;m<7;m++) points.push({id:`I${m}`, label:`∞ slope ${m}`});
+  points.push({id:'IV', label:'∞ vertical'});
+  const symbolById = new Map(points.map((p,i)=>[p.id,{...p,emoji:EMOJIS[i]}]));
+
+  const deck=[];
+  for(let m=0;m<7;m++){
+    for(let b=0;b<7;b++){
+      const ids=[];
+      for(let x=0;x<7;x++) ids.push(`P${x}${mod(m*x+b)}`);
+      ids.push(`I${m}`);
+      deck.push({name:`y = ${m}x + ${b} (mod 7)`, ids});
+    }
+  }
+  for(let a=0;a<7;a++){
+    const ids=[];
+    for(let y=0;y<7;y++) ids.push(`P${a}${y}`);
+    ids.push('IV');
+    deck.push({name:`x = ${a}`, ids});
+  }
+  deck.push({name:'line at infinity', ids:['I0','I1','I2','I3','I4','I5','I6','IV']});
+
+  function intersection(a,b){
+    const bs=new Set(b.ids); return a.ids.filter(id=>bs.has(id));
+  }
+  function verify(){
+    let bad=0, pairs=0, badExamples=[];
+    const allEight=deck.every(c=>c.ids.length===8 && new Set(c.ids).size===8);
+    for(let i=0;i<deck.length;i++) for(let j=i+1;j<deck.length;j++){
+      pairs++;
+      const common=intersection(deck[i],deck[j]);
+      if(common.length!==1){bad++; if(badExamples.length<5) badExamples.push([i,j,common]);}
+    }
+    return {cards:deck.length,allEight,pairs,bad,badExamples};
+  }
+
+  const verifyData=verify();
+  document.getElementById('cardCount').textContent=verifyData.cards;
+  document.getElementById('symbolsPerCard').textContent=verifyData.allEight?'8':'FAIL';
+  document.getElementById('pairCount').textContent=verifyData.pairs.toLocaleString();
+  document.getElementById('badPairs').textContent=verifyData.bad;
+  const good=verifyData.cards===57 && verifyData.allEight && verifyData.pairs===1596 && verifyData.bad===0;
+  document.getElementById('verifyResult').innerHTML = good ? '<span class="pass">VALID — all 1,596 pairs share exactly one symbol.</span>' : '<span class="fail">NOT YET VALID</span>';
+  document.getElementById('validityPill').textContent = good ? '✓ Deck verified VALID' : 'Deck verification failed';
+
+  let p1=0,p2=0,round=1,sudden=false,currentPair=null,roundLocked=false,autoTimer=null,countdownTimer=null,browse=0;
+  const wrongTimers=new Set();
+  const left=document.getElementById('leftCard'), right=document.getElementById('rightCard');
+  const status=document.getElementById('status');
+  const AUTO_NEXT_MS=3000;
+
+  const positions=[
+    [50,15],[77,27],[84,56],[66,80],[36,83],[15,62],[18,31],[50,50]
+  ];
+  const scales=[1.08,.92,1.18,.88,1.02,.95,1.12,.9];
+  const rotations=[-12,9,-6,14,-10,7,-4,0];
+
+  function shuffle(a){
+    const x=[...a]; for(let i=x.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[x[i],x[j]]=[x[j],x[i]];} return x;
+  }
+
+  function getMatchId(){
+    if(!currentPair) return null;
+    return intersection(deck[currentPair[0]],deck[currentPair[1]])[0];
+  }
+
+  function renderCard(node,card,player,revealId=null,wrongId=null){
+    node.innerHTML='';
+    const ids=shuffle(card.ids);
+    ids.forEach((id,k)=>{
+      const s=symbolById.get(id);
+      const btn=document.createElement('button');
+      btn.type='button';
+      btn.className='symbol'+(id===revealId?' match-reveal':'')+(id===wrongId?' wrong':'');
+      btn.textContent=s.emoji; btn.title=s.label;
+      btn.dataset.symbolId=id;
+      btn.dataset.player=player;
+      btn.style.left=positions[k][0]+'%'; btn.style.top=positions[k][1]+'%';
+      btn.style.transform=`translate(-50%,-50%) rotate(${rotations[k]}deg) scale(${scales[k]})`;
+      btn.addEventListener('click',()=>handleSymbolClick(player,id,btn));
+      node.appendChild(btn);
+    });
+  }
+
+  function setCardsEnabled(enabled){
+    left.querySelectorAll('.symbol').forEach(b=>b.disabled=!enabled);
+    right.querySelectorAll('.symbol').forEach(b=>b.disabled=!enabled);
+  }
+
+  function freezeCurrentRound(matchId){
+    // Freeze the exact card layout already on screen. Do not re-render/shuffle.
+    wrongTimers.forEach(t=>clearTimeout(t));
+    wrongTimers.clear();
+    [...left.querySelectorAll('.symbol'),...right.querySelectorAll('.symbol')].forEach(btn=>{
+      btn.classList.remove('wrong');
+      if(btn.dataset.symbolId===matchId) btn.classList.add('match-reveal');
+      btn.disabled=true;
+    });
+  }
+
+  function stopCountdown(){
+    if(countdownTimer){clearInterval(countdownTimer);countdownTimer=null;}
+  }
+
+  function scheduleNext(message, callback){
+    if(autoTimer){clearTimeout(autoTimer);autoTimer=null;}
+    stopCountdown();
+    const totalSeconds=Math.ceil(AUTO_NEXT_MS/1000);
+    let remaining=totalSeconds;
+    status.className='status good';
+    status.textContent=`${message} Next round in ${remaining}…`;
+    countdownTimer=setInterval(()=>{
+      remaining--;
+      if(remaining>0){
+        status.textContent=`${message} Next round in ${remaining}…`;
+      }
+    },1000);
+    autoTimer=setTimeout(()=>{
+      stopCountdown();
+      callback();
+    },AUTO_NEXT_MS);
+  }
+
+  function drawPair(){
+    if(autoTimer){clearTimeout(autoTimer);autoTimer=null;}
+    stopCountdown();
+    let a=Math.floor(Math.random()*57),b;
+    do{b=Math.floor(Math.random()*57);}while(b===a);
+    currentPair=[a,b]; roundLocked=false;
+    renderCard(left,deck[a],1); renderCard(right,deck[b],2);
+    document.getElementById('leftLabel').textContent=`Player 1 · Card ${a+1}`;
+    document.getElementById('rightLabel').textContent=`Player 2 · Card ${b+1}`;
+    status.className='status';
+    status.textContent=sudden?'Sudden death — first correct click wins the match.':'Click the matching symbol on your own card. First correct click gets the point.';
+    updateRound();
+  }
+
+  function reveal(){
+    if(!currentPair)return;
+    const id=getMatchId();
+    // Reveal on the exact current layout — never re-render or reshuffle the cards.
+    freezeCurrentRound(id);
+    status.className='status good';
+    status.textContent=`Match: ${symbolById.get(id).emoji} (${symbolById.get(id).label})`;
+  }
+
+  function handleSymbolClick(player,id,btn){
+    if(roundLocked || !currentPair) return;
+    const matchId=getMatchId();
+    if(id!==matchId){
+      btn.classList.add('wrong');
+      status.className='status bad';
+      status.textContent=`Player ${player}: wrong symbol — keep looking.`;
+      const t=setTimeout(()=>{
+        wrongTimers.delete(t);
+        btn.classList.remove('wrong');
+        if(!roundLocked){status.className='status'; status.textContent='Keep looking — first correct click wins the round.';}
+      },650);
+      wrongTimers.add(t);
+      return;
+    }
+    awardRound(player,matchId);
+  }
+
+  function awardRound(player,matchId){
+    roundLocked=true;
+    if(player===1)p1++;else p2++;
+    document.getElementById('p1Score').textContent=p1;
+    document.getElementById('p2Score').textContent=p2;
+    freezeCurrentRound(matchId);
+
+    if(sudden){
+      status.className='status good';
+      status.textContent=`Player ${player} wins sudden death! Final score: ${p1}–${p2}.`;
+      setTimeout(()=>showWinModal(player,true),250);
+      return;
+    }
+
+    if(round>=10){
+      if(p1===p2){
+        scheduleNext(`Round 10 complete: ${p1}–${p2}.`,()=>{sudden=true; drawPair();});
+      }else{
+        const winner=p1>p2?1:2;
+        status.className='status good';
+        status.textContent=`Match over — Player ${winner} wins ${p1}–${p2}!`;
+        setTimeout(()=>showWinModal(winner,false),250);
+      }
+    }else{
+      scheduleNext(`Player ${player} scores! ${p1}–${p2}.`,()=>{round++; drawPair();});
+    }
+  }
+
+  function updateRound(){
+    document.getElementById('roundText').textContent=sudden?'Sudden Death':`Round ${round} / 10`;
+    document.getElementById('modeText').textContent=sudden?'Tie-breaker':'Click-to-score mode';
+  }
+
+  function restart(){
+    if(autoTimer){clearTimeout(autoTimer);autoTimer=null;}
+    stopCountdown();
+    p1=0;p2=0;round=1;sudden=false;roundLocked=false;
+    document.getElementById('p1Score').textContent='0';
+    document.getElementById('p2Score').textContent='0';
+    drawPair();
+  }
+
+  function showWinModal(winner, wasSudden=false){
+    roundLocked=true;
+    setCardsEnabled(false);
+    document.getElementById('winTitle').textContent=`Player ${winner} wins!`;
+    document.getElementById('winScore').textContent=`${p1}–${p2}`;
+    document.getElementById('winMessage').textContent=wasSudden?'Sudden death decided the match.':'10 rounds complete.';
+    document.getElementById('winOverlay').classList.remove('hidden');
+  }
+
+  document.getElementById('revealBtn').addEventListener('click',()=>{
+    if(roundLocked) return;
+    roundLocked=true;
+    reveal();
+    status.textContent += ' — No point awarded.';
+  });
+  async function ensureQRCodeLib(){
+    if(window.QRCode) return true;
+    try{
+      await new Promise((resolve,reject)=>{
+        const existing=document.querySelector('script[data-qrcode-lib]');
+        if(existing){
+          existing.addEventListener('load',resolve,{once:true});
+          existing.addEventListener('error',reject,{once:true});
+          return;
+        }
+        const script=document.createElement('script');
+        script.src='https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js';
+        script.async=true;
+        script.dataset.qrcodeLib='1';
+        script.onload=resolve;
+        script.onerror=reject;
+        document.head.appendChild(script);
+      });
+      return !!window.QRCode;
+    }catch(e){ return false; }
+  }
+
+  async function copyText(text){
+    try{
+      if(navigator.clipboard && window.isSecureContext){ await navigator.clipboard.writeText(text); return true; }
+    }catch(e){}
+    const ta=document.createElement('textarea');
+    ta.value=text; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select();
+    let ok=false; try{ok=document.execCommand('copy');}catch(e){} ta.remove(); return ok;
+  }
+
+  async function openShare(){
+    const overlay=document.getElementById('shareOverlay');
+    const url=location.href;
+    document.getElementById('shareUrl').value=url;
+    document.getElementById('shareWarn').classList.toggle('hidden',location.protocol!=='file:');
+    const qr=document.getElementById('shareQr');
+    qr.innerHTML='<span class="small">Generating QR…</span>';
+    overlay.classList.remove('hidden');
+    const ok=await ensureQRCodeLib();
+    qr.innerHTML='';
+    if(ok){
+      new QRCode(qr,{text:url,width:200,height:200,correctLevel:QRCode.CorrectLevel.M});
+    }else{
+      qr.innerHTML='<span class="small">QR code needs an internet connection the first time this share panel is opened.</span>';
+    }
+    document.getElementById('nativeShareBtn').classList.toggle('hidden',!navigator.share);
+  }
+
+  document.getElementById('shareBtn').addEventListener('click',openShare);
+  document.getElementById('closeShareBtn').addEventListener('click',()=>document.getElementById('shareOverlay').classList.add('hidden'));
+  document.getElementById('shareOverlay').addEventListener('click',e=>{if(e.target.id==='shareOverlay') e.currentTarget.classList.add('hidden');});
+  document.getElementById('copyShareBtn').addEventListener('click',async()=>{
+    const btn=document.getElementById('copyShareBtn'); const old=btn.textContent;
+    btn.textContent=(await copyText(document.getElementById('shareUrl').value))?'Copied!':'Copy failed';
+    setTimeout(()=>btn.textContent=old,1400);
+  });
+  document.getElementById('nativeShareBtn').addEventListener('click',async()=>{
+    if(!navigator.share) return;
+    try{await navigator.share({title:'SpotItRio',text:'Play SpotItRio with me!',url:location.href});}catch(e){}
+  });
+
+  document.getElementById('restartBtn').addEventListener('click',()=>{document.getElementById('winOverlay').classList.add('hidden'); restart();});
+  document.getElementById('playAgainBtn').addEventListener('click',()=>{document.getElementById('winOverlay').classList.add('hidden'); restart();});
+  document.getElementById('startBtn').addEventListener('click',()=>{
+    document.getElementById('startOverlay').classList.add('hidden');
+    restart();
+  });
+
+  function renderBrowse(){
+    document.getElementById('browseLabel').textContent=`Card ${browse+1} / 57`;
+    document.getElementById('browseSymbols').innerHTML=deck[browse].ids.map(id=>`<span title="${symbolById.get(id).label}" style="display:inline-block;margin:4px 8px">${symbolById.get(id).emoji}</span>`).join('');
+  }
+  document.getElementById('prevCard').addEventListener('click',()=>{browse=(browse+56)%57;renderBrowse();});
+  document.getElementById('nextCard').addEventListener('click',()=>{browse=(browse+1)%57;renderBrowse();});
+  renderBrowse();
+  // Pre-render the actual game underneath the start overlay so the start UI is visibly a front layer, not a separate page.
+  drawPair();
+  setCardsEnabled(false);
+  status.textContent='Press Start Match to begin.';
+  document.getElementById('roundText').textContent='Round 1 / 10';
+})();
+</script>
+</body>
+</html>
